@@ -5,8 +5,7 @@ import axios from 'axios'
 ========================================================= */
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  'https://e761-103-131-212-208.ngrok-free.app/api' // Update with your ngrok URL
+  import.meta.env.VITE_API_URL 
 
 /* =========================================================
    AXIOS INSTANCE
