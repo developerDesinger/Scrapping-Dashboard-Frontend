@@ -1,18 +1,14 @@
-import { Upload, FileSearch, Brain, Check } from 'lucide-react'
+import { Upload, Check } from 'lucide-react'
 
 const steps = [
-    { icon: Upload, label: 'Upload', key: 'upload' },
-    { icon: FileSearch, label: 'Parse', key: 'parse' },
-    { icon: Brain, label: 'Analyze', key: 'analyze' },
-    { icon: Check, label: 'Match', key: 'match' },
+    { icon: Upload, label: 'Upload', key: 'uploading' },
+    { icon: Check, label: 'Complete', key: 'complete' },
 ]
 
 const stepIndex = {
     idle: -1,
     uploading: 0,
-    parsing: 1,
-    analyzing: 2,
-    complete: 3,
+    complete: 1,
 }
 
 export default function CVAnalysisStatus({ status = 'idle' }) {
@@ -22,7 +18,7 @@ export default function CVAnalysisStatus({ status = 'idle' }) {
 
     return (
         <div className="glass rounded-2xl p-6 animate-fade-in">
-            <h3 className="text-sm font-semibold text-surface-200 mb-6">Analysis Progress</h3>
+            <h3 className="text-sm font-semibold text-surface-200 mb-6">Upload Progress</h3>
             <div className="flex items-center justify-between">
                 {steps.map((step, i) => {
                     const isComplete = i < currentIdx || status === 'complete'

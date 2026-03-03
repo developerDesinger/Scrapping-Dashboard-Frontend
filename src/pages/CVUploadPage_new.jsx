@@ -14,39 +14,34 @@ export default function CVUploadPage() {
     const [file, setFile] = useState(null)
     const [candidateName, setCandidateName] = useState('')
     const [progress, setProgress] = useState(0)
-    const [status, setStatus] = useState('idle')
+    const [status, setStatus] = useState('idle') // idle | uploading | complete
     const [analysis, setAnalysis] = useState(null)
     const [candidateId, setCandidateId] = useState(null)
     
+    // CV List states
     const [cvList, setCvList] = useState([])
     const [cvListLoading, setCvListLoading] = useState(false)
     const [cvListError, setCvListError] = useState(null)
 
+    // Fetch CVs on component mount
     useEffect(() => {
-        console.log('CVUploadPage mounted - fetching CVs...')
         fetchUserCVs()
     }, [])
 
     const fetchUserCVs = async () => {
-        console.log('Calling fetchUserCVs...')
         setCvListLoading(true)
         setCvListError(null)
         try {
-            console.log('Making API call to getUserCVs...')
             const response = await cvAPI.getUserCVs()
-            console.log('Full API Response:', response)
-            console.log('Response status:', response.status)
-            console.log('Response data:', response.data)
+            console.log('Raw API response:', response)
             
-            // Handle the new response structure with cv_profiles
-            const cvs = response.data?.cv_profiles || response.data?.data || response.data?.cvs || response.data || []
+            // Handle different response structures
+            const cvs = response.data?.data || response.data?.cvs || response.data || []
             console.log('Processed CVs:', cvs)
             
             setCvList(Array.isArray(cvs) ? cvs : [])
         } catch (err) {
             console.error('Error fetching CVs:', err)
-            console.error('Error message:', err.message)
-            console.error('Error response:', err.response)
             setCvListError('Failed to load CVs')
         } finally {
             setCvListLoading(false)
@@ -75,6 +70,7 @@ export default function CVUploadPage() {
             setCandidateId(result.data?.candidate_id || result.data?.id)
             toast.success('CV uploaded successfully!')
             
+            // Refresh CV list
             await fetchUserCVs()
         } catch (err) {
             toast.error(err.response?.data?.message || 'Upload failed. Please try again.')
@@ -89,6 +85,10 @@ export default function CVUploadPage() {
             return
         }
 
+        if (!window.confirm('Are you sure you want to delete this CV?')) {
+            return
+        }
+
         try {
             await cvAPI.deleteCv(candidateId)
             setFile(null)
@@ -99,6 +99,7 @@ export default function CVUploadPage() {
             setStatus('idle')
             toast.success('CV deleted successfully!')
             
+            // Refresh CV list
             await fetchUserCVs()
         } catch (err) {
             toast.error(err.response?.data?.message || 'Delete failed. Please try again.')
@@ -106,6 +107,7 @@ export default function CVUploadPage() {
     }, [candidateId])
 
     const handleCVDeleted = async (deletedId) => {
+        // Remove the deleted CV from the list
         setCvList((prevList) => prevList.filter((cv) => (cv.id || cv.candidate_id) !== deletedId))
     }
 
@@ -120,15 +122,28 @@ export default function CVUploadPage() {
 
     return (
         <div className="animate-fade-in">
-            <div className="mx-auto max-w-4xl">
-                <div className="mb-8 text-center">
-                    <h1 className="text-4xl font-bold text-surface-100 mb-2">CV Upload</h1>
-                    <p className="text-base text-surface-400">
-                        Upload your CV to find the best matching jobs across all platforms
-                    </p>
+            {/* Header */}
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-surface-100">CV Upload</h1>
+                <p className="text-sm text-surface-500 mt-1">
+                    Upload your CV to find the best matching jobs across all platforms
+                </p>
+            </div>
+
+            {/* Main Content with Sidebar */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Sidebar - CV List */}
+                <div className="lg:col-span-1">
+                    <CVList 
+                        cvs={cvList} 
+                        loading={cvListLoading} 
+                        onCVDeleted={handleCVDeleted}
+                    />
                 </div>
 
-                <div className="space-y-10">
+                {/* Main Content */}
+                <div className="lg:col-span-3 space-y-6">
+                    {/* Candidate Name Input */}
                     {status === 'idle' && (
                         <Card>
                             <Input
@@ -140,8 +155,10 @@ export default function CVUploadPage() {
                         </Card>
                     )}
 
+                    {/* Upload Zone */}
                     <CVDropzone onFileSelect={handleFileSelect} disabled={status !== 'idle' && status !== 'complete'} />
 
+                    {/* Upload Button */}
                     {file && status === 'idle' && (
                         <div className="flex justify-center animate-slide-up">
                             <Button onClick={handleUpload} size="lg" icon={Sparkles}>
@@ -150,6 +167,7 @@ export default function CVUploadPage() {
                         </div>
                     )}
 
+                    {/* Progress Bar */}
                     {status === 'uploading' && (
                         <Card className="animate-fade-in">
                             <div className="flex items-center justify-between mb-2">
@@ -165,6 +183,7 @@ export default function CVUploadPage() {
                         </Card>
                     )}
 
+                    {/* Results */}
                     {status === 'complete' && analysis && (
                         <Card className="animate-slide-up">
                             <div className="flex items-center justify-between mb-6">
@@ -187,16 +206,19 @@ export default function CVUploadPage() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                {/* Candidate Name */}
                                 <div className="glass-light rounded-xl p-4 text-center">
                                     <p className="text-lg font-semibold text-surface-200 mb-1 truncate">{analysis.candidate_name || candidateName}</p>
                                     <p className="text-xs text-surface-500">Candidate Name</p>
                                 </div>
 
+                                {/* Candidate ID */}
                                 <div className="glass-light rounded-xl p-4 text-center">
                                     <p className="text-sm font-medium text-brand-400 mb-1 truncate">{analysis.candidate_id || candidateId}</p>
                                     <p className="text-xs text-surface-500">Candidate ID</p>
                                 </div>
 
+                                {/* File */}
                                 <div className="glass-light rounded-xl p-4 text-center">
                                     <div className="flex items-center justify-center gap-2 mb-1">
                                         <FileText className="h-4 w-4 text-brand-400" />
@@ -206,6 +228,7 @@ export default function CVUploadPage() {
                                 </div>
                             </div>
 
+                            {/* Skills */}
                             {analysis.skills && analysis.skills.length > 0 && (
                                 <div>
                                     <h3 className="text-sm font-semibold text-surface-300 mb-3">Extracted Skills</h3>
@@ -217,6 +240,7 @@ export default function CVUploadPage() {
                                 </div>
                             )}
 
+                            {/* Additional Info */}
                             {(analysis.experience || analysis.education) && (
                                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {analysis.experience && (
@@ -234,6 +258,7 @@ export default function CVUploadPage() {
                                 </div>
                             )}
 
+                            {/* Upload New CV Button */}
                             <div className="mt-6 flex justify-center">
                                 <Button
                                     onClick={handleResetUpload}
@@ -244,14 +269,6 @@ export default function CVUploadPage() {
                             </div>
                         </Card>
                     )}
-                </div>
-
-                <div className="mt-10 pt-8 border-t border-surface-700">
-                    <CVList 
-                        cvs={cvList} 
-                        loading={cvListLoading} 
-                        onCVDeleted={handleCVDeleted}
-                    />
                 </div>
             </div>
         </div>

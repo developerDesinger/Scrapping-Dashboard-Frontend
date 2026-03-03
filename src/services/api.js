@@ -1,8 +1,6 @@
 import axios from 'axios'
 
-/* =========================================================
-   BASE URL (Senior Backend Tunnel)
-========================================================= */
+
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL 
@@ -29,9 +27,7 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-/* =========================================================
-   RESPONSE INTERCEPTOR (Auto Logout if Unauthorized)
-========================================================= */
+
 
 api.interceptors.response.use(
   (response) => response,
@@ -82,56 +78,104 @@ export const authAPI = {
   },
 }
 
-/* =========================================================
-   CV APIs (Mock/Static — UI Demo Only)
-   ⚠️ NO BACKEND CALLS — Pure Client-Side Demonstration
-========================================================= */
+
 
 export const cvAPI = {
-  // Simulate CV upload with instant mock result
-  upload: async (file, onProgress) => {
-    // Simulate upload progress (client-side only)
-    for (let i = 0; i <= 100; i += 20) {
-      await new Promise((r) => setTimeout(r, 100))
-      onProgress?.(i)
-    }
+  // Upload CV file to backend with candidate name
+  upload: async (file, candidateName, onProgress) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('candidate_name', candidateName)
 
-    // Always return static mock analysis (no backend call)
-    return {
-      data: {
-        id: 'cv-mock-' + Date.now(),
-        filename: file.name,
-        skills: ['JavaScript', 'React', 'Node.js', 'Python', 'SQL', 'REST APIs'],
-        experience: '3-5 years',
-        matchScore: 85,
-        status: 'analyzed',
-      },
+    try {
+      const response = await api.post('/upload_cv', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          )
+          onProgress?.(percentCompleted)
+        },
+      })
+
+      return response
+    } catch (error) {
+      throw error
     }
   },
 
-  // Return static analysis result (no backend lookup)
+  // Delete CV from backend using candidate ID
+  deleteCv: async (candidateId) => {
+    try {
+      const response = await api.delete(`/delete_cv/${candidateId}`)
+      return response
+    } catch (error) {
+      throw error
+    }
+  },
+
+  // Get analysis result for a CV
   getAnalysis: async (cvId) => {
-    // Instant, no delay
-    return {
-      data: {
-        id: cvId,
-        skills: ['JavaScript', 'React', 'Node.js', 'Python', 'SQL', 'REST APIs'],
-        experience: '3-5 years',
-        education: "Bachelor's in Computer Science",
-        matchScore: 85,
-      },
+    try {
+      const response = await api.get(`/get_cv_analysis/${cvId}`)
+      return response
+    } catch (error) {
+      throw error
+    }
+  },
+
+  // Get all user CVs from database
+  getUserCVs: async () => {
+    try {
+      const response = await api.get('/get_user_cv')
+      console.log('Fetched user CVs:', response.data)
+      return response
+    } catch (error) {
+      console.error('Error fetching user CVs:', error)
+      throw error
+    }
+  },
+
+
+
+  // Get matched LinkedIn jobs for uploaded CV
+  getMatchedLinkedInJobs: async (page = 1, limit = 12) => {
+    try {
+      const response = await api.get('/match-linkedin-jobs', {
+        params: { page, limit },
+      })
+      return response
+    } catch (error) {
+      throw error
+    }
+  },
+
+  // Get matched Indeed jobs for uploaded CV
+  getMatchedIndeedJobs: async (page = 1, limit = 12) => {
+    try {
+      const response = await api.get('/match-indeed-jobs', {
+        params: { page, limit },
+      })
+      return response
+    } catch (error) {
+      throw error
+    }
+  },
+
+  // Get matched Lintberg jobs for uploaded CV
+  getMatchedLintbergJobs: async (page = 1, limit = 12) => {
+    try {
+      const response = await api.get('/match-lintberg-jobs', {
+        params: { page, limit },
+      })
+      return response
+    } catch (error) {
+      throw error
     }
   },
 }
-
-/* =========================================================
-   JOB APIs (Real Backend Data via GET)
-   
-   ✅ Fetches LIVE job data from backend endpoints
-   ✅ COMPLETELY INDEPENDENT of CV upload/analysis
-   ✅ No matching or filtering based on CV skills
-   ✅ Backend returns raw job listings as-is
-========================================================= */
 
 // Transform backend job format to UI format
 function transformBackendJob(backendJob, platform) {
