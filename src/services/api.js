@@ -28,7 +28,6 @@ api.interceptors.request.use((config) => {
 })
 
 
-
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -88,7 +87,7 @@ export const cvAPI = {
     formData.append('candidate_name', candidateName)
 
     try {
-      const response = await api.post('/upload_cv', formData, {
+      const response = await api.post('/api/upload_cv', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -109,17 +108,7 @@ export const cvAPI = {
   // Delete CV from backend using candidate ID
   deleteCv: async (candidateId) => {
     try {
-      const response = await api.delete(`/delete_cv/${candidateId}`)
-      return response
-    } catch (error) {
-      throw error
-    }
-  },
-
-  // Get analysis result for a CV
-  getAnalysis: async (cvId) => {
-    try {
-      const response = await api.get(`/get_cv_analysis/${cvId}`)
+      const response = await api.delete(`/api/delete_cv/${candidateId}`)
       return response
     } catch (error) {
       throw error
@@ -129,7 +118,7 @@ export const cvAPI = {
   // Get all user CVs from database
   getUserCVs: async () => {
     try {
-      const response = await api.get('/get_user_cv')
+      const response = await api.get('/api/get_user_cv')
       console.log('Fetched user CVs:', response.data)
       return response
     } catch (error) {
@@ -138,72 +127,58 @@ export const cvAPI = {
     }
   },
 
+  
+   
 
 
-  // Get matched LinkedIn jobs for uploaded CV
-  getMatchedLinkedInJobs: async (page = 1, limit = 12) => {
-    try {
-      const response = await api.get('/match-linkedin-jobs', {
-        params: { page, limit },
-      })
-      return response
-    } catch (error) {
-      throw error
-    }
-  },
 
-  // Get matched Indeed jobs for uploaded CV
-  getMatchedIndeedJobs: async (page = 1, limit = 12) => {
-    try {
-      const response = await api.get('/match-indeed-jobs', {
-        params: { page, limit },
-      })
-      return response
-    } catch (error) {
-      throw error
-    }
-  },
 
-  // Get matched Lintberg jobs for uploaded CV
-  getMatchedLintbergJobs: async (page = 1, limit = 12) => {
-    try {
-      const response = await api.get('/match-lintberg-jobs', {
-        params: { page, limit },
-      })
-      return response
-    } catch (error) {
-      throw error
-    }
-  },
+
 }
 
-// Transform backend job format to UI format
-function transformBackendJob(backendJob, platform) {
-  // Convert score (0-1 range) to matchScore (0-100 range)
-  const matchScore = backendJob.score ? Math.round(backendJob.score * 100) : 50
+// Transform unified API result object to UI format
+// Handles the full result with job matching metadata
+function transformBackendJob(result) {
+  if (!result || !result.job) return null
+  
+  const jobData = result.job
+  const source = jobData.source || 'unknown'
+  const matchScore = result.match_score ? Math.round(result.match_score) : 50
   
   // Extract skills/tags from title and description
-  const tags = extractTags(backendJob.title + ' ' + (backendJob.description_preview || ''))
+  const tags = extractTags(jobData.title + ' ' + (jobData.description_preview || jobData.snippet || ''))
   
   // Use job_types from backend if available, otherwise extract from title
-  let jobType = backendJob.job_types || ''
+  let jobType = jobData.job_types || ''
   if (!jobType) {
-    jobType = extractJobType(backendJob.title || '')
+    jobType = extractJobType(jobData.title || '')
   }
   
+  // Extract salary from job data
+  const salary = jobData.salary || extractSalary(jobData.title || '')
+  
   return {
-    id: backendJob.id || backendJob.job_id,
-    title: backendJob.title || 'Untitled Position',
-    company: backendJob.company || 'Unknown Company',
-    location: backendJob.location || 'Remote',
+    // Job core info
+    id: jobData.job_id || jobData.id,
+    title: jobData.title || 'Untitled Position',
+    company: jobData.company || 'Unknown Company',
+    location: jobData.location || 'Remote',
     type: jobType,
-    salary: extractSalary(backendJob.title || ''),
-    matchScore,
+    salary,
     tags,
-    postedAt: backendJob.validity_text || formatDateAgo(backendJob.saved_at),
-    platform,
-    description: backendJob.description_preview || backendJob.title || '',
-    url: backendJob.link || '#',
+    postedAt: jobData.date || 'Recently posted',
+    platform: source,
+    description: jobData.description_preview || jobData.snippet || jobData.title || '',
+    url: jobData.link || '#',
+    source,
+    snippet: jobData.snippet || '',
+    
+    // Match metadata
+    matchScore,
+    candidateName: result.candidate_name || '',
+    reasoning: result.reasoning || '',
+    sector: result.sector || '',
+    vectorId: result.vector_id || '',
   }
 }
 
@@ -241,179 +216,165 @@ function extractSalary(title) {
   return salaryMatch ? salaryMatch[0] : null
 }
 
-// Format saved_at to relative time
-function formatDateAgo(savedAt) {
-  if (!savedAt) return 'Recently posted'
-  const [dateStr, timeStr] = savedAt.split(' ')
-  const jobDate = new Date(dateStr)
-  const now = new Date()
-  const diffTime = Math.abs(now - jobDate)
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
-  if (diffDays === 1) return '1d ago'
-  if (diffDays < 7) return `${diffDays}d ago`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
-  return `${Math.floor(diffDays / 30)}m ago`
-}
-
-// Helper to normalize backend responses into the shape expected by useJobs
-function normalizeJobResponse(response, params = {}, platform = 'linkedin') {
+// Normalize unified API response (/api/get_results)
+// Processes results array and filters by source
+function normalizeJobResponse(response, filterBySource = null) {
   console.log('🔍 Raw backend response:', response?.data)
   
-  // many backends return an object with `jobs` array and pagination fields
-  if (response?.data?.jobs && Array.isArray(response.data.jobs)) {
-    console.log('✅ Jobs found in response.data.jobs:', response.data.jobs.length)
-    const transformedJobs = response.data.jobs.map(job => transformBackendJob(job, platform))
-    console.log('✅ Transformed', transformedJobs.length, 'jobs for display')
-    
-    // Extract pagination from various possible structures
-    const pagination = response.data.pagination || {}
-    const total = response.data.total || pagination.total_jobs || response.data.jobs.length
-    const page = response.data.page || pagination.current_page || 1
-    const perPage = response.data.perPage || pagination.page_size || 6
-    const totalPages = response.data.totalPages || pagination.total_pages || Math.ceil(total / perPage)
-    
+  if (!response?.data) {
+    console.error('❌ No response data')
     return {
       data: {
-        jobs: transformedJobs,
-        total,
-        page,
-        perPage,
-        totalPages,
+        jobs: [],
+        total: 0,
+        page: 1,
+        perPage: 6,
+        totalPages: 0,
       }
     }
   }
-
-  // if the API simply returns an array, wrap it
-  if (Array.isArray(response?.data)) {
-    const transformedJobs = response.data.map(job => transformBackendJob(job, platform))
-    const page = params.page || 1
-    const perPage = params.perPage || 6
-    console.log('✅ Array of jobs detected:', transformedJobs.length)
-    return {
-      data: {
-        jobs: transformedJobs,
-        total: transformedJobs.length,
-        page,
-        perPage,
-        totalPages: Math.ceil(transformedJobs.length / perPage),
-      },
+  
+  // Extract results array from unified API response
+  let results = response.data.results || []
+  
+  if (!Array.isArray(results)) {
+    console.warn('⚠️ Results is not an array:', results)
+    results = []
+  }
+  
+  console.log(`✅ Fetched ${results.length} results from unified endpoint`)
+  
+  // Filter results by source if specified
+  let filteredResults = results
+  
+  if (filterBySource) {
+    const beforeFilter = results.length
+    filteredResults = results.filter(result => {
+      const job = result.job
+      const jobSource = job?.source || ''
+      const sourceMatch = jobSource.toLowerCase() === filterBySource.toLowerCase()
+      return sourceMatch && job !== null && job !== undefined
+    })
+    console.log(`✅ Filtered results by source '${filterBySource}': ${beforeFilter} → ${filteredResults.length}`)
+  } else {
+    // Filter out invalid results if no source filter
+    filteredResults = results.filter(result => result.job !== null && result.job !== undefined)
+  }
+  
+  // Transform results to UI format
+  const transformedJobs = filteredResults
+    .map(result => transformBackendJob(result))
+    .filter(job => job !== null)
+  
+  console.log(`✅ Transformed ${transformedJobs.length} jobs for display`)
+  
+  // Calculate pagination (simple pagination based on array length)
+  const perPage = 6
+  const total = transformedJobs.length
+  const totalPages = Math.ceil(total / perPage)
+  
+  return {
+    data: {
+      jobs: transformedJobs,
+      total,
+      page: 1,
+      perPage,
+      totalPages,
     }
   }
-
-  // Try data.data pattern
-  if (response?.data?.data && Array.isArray(response.data.data)) {
-    const transformedJobs = response.data.data.map(job => transformBackendJob(job, platform))
-    const page = params.page || 1
-    const perPage = params.perPage || 6
-    console.log('✅ Jobs found in response.data.data:', transformedJobs.length)
-    return {
-      data: {
-        jobs: transformedJobs,
-        total: transformedJobs.length,
-        page,
-        perPage,
-        totalPages: Math.ceil(transformedJobs.length / perPage),
-      },
-    }
-  }
-
-  // otherwise just return the original response and let caller handle it
-  console.warn('⚠️ Unexpected response structure:', response?.data)
-  return response
 }
 
 export const jobsAPI = {
-  // Scrape LinkedIn jobs from backend
+  /**
+   * Fetch ALL jobs from unified endpoint: /api/get_results
+   * Returns jobs with source field that can be filtered by each page
+   * 
+   * @returns {Promise} Response with all jobs from all sources
+   */
+  getAllResults: async () => {
+    try {
+      console.log('📡 Fetching all results from unified endpoint: /api/get_results')
+      const response = await api.get('/api/get_results')
+      console.log('✅ Results received:', response)
+      return response
+    } catch (error) {
+      console.error('❌ Error fetching results:', error.message, error.response?.data)
+      throw error
+    }
+  },
+
+  /**
+   * Fetch jobs filtered by source
+   * Calls unified endpoint and filters results by source
+   * 
+   * @param {string} source - The job source to filter by (linkedin, indeed, lintberg)
+   * @param {object} params - Query parameters (for future use - pagination, etc.)
+   * @returns {Promise} Normalized job response filtered by source
+   */
+  getJobs: async (source = 'linkedin', params = {}) => {
+    try {
+      console.log(`📡 Fetching jobs for source: ${source}`)
+      
+      // Fetch from unified endpoint
+      const response = await api.get('/api/get_results')
+      console.log(`✅ Response received for ${source}:`, response)
+      
+      // Normalize and filter by source
+      return normalizeJobResponse(response, source)
+    } catch (error) {
+      console.error(`❌ Jobs fetch error for ${source}:`, error.message, error.response?.data)
+      throw error
+    }
+  },
+  
+  /**
+   * Fetch LinkedIn jobs
+   * Routes through the unified getJobs API with 'linkedin' source
+   */
   getLinkedInJobs: async (params = {}) => {
-    try {
-      console.log('📡 Fetching LinkedIn jobs from:', API_BASE_URL + '/jobs/linkedin')
-      // Map filter names to backend API parameter names
-      const queryParams = {
-        page: params.page || 1,
-        page_size: params.perPage || 6,
-      }
-      
-      // Add search filter
-      if (params.search) queryParams.search = params.search
-      
-      // Map type to job_type
-      if (params.type) queryParams.job_type = params.type.toLowerCase()
-      
-      // Add remote filter
-      if (params.remote !== '' && params.remote !== undefined) queryParams.remote = params.remote
-      
-      // Add location filter
-      if (params.location) queryParams.location = params.location
-      
-      const response = await api.get('/jobs/linkedin', { params: queryParams })
-      console.log('✅ LinkedIn response received:', response)
-      return normalizeJobResponse(response, params, 'linkedin')
-    } catch (error) {
-      console.error('❌ LinkedIn jobs fetch error:', error.message, error.response?.data)
-      throw error
-    }
+    return jobsAPI.getJobs('linkedin', params)
   },
-
-  // Scrape Indeed jobs from backend
+  
+  /**
+   * Fetch Indeed jobs
+   * Routes through the unified getJobs API with 'indeed' source
+   */
   getIndeedJobs: async (params = {}) => {
-    try {
-      console.log('📡 Fetching Indeed jobs from:', API_BASE_URL + '/jobs/indeed')
-      // Map filter names to backend API parameter names
-      const queryParams = {
-        page: params.page || 1,
-        page_size: params.perPage || 6,
-      }
-      
-      // Add search filter
-      if (params.search) queryParams.search = params.search
-      
-      // Map type to job_type
-      if (params.type) queryParams.job_type = params.type.toLowerCase()
-      
-      // Add remote filter
-      if (params.remote !== '' && params.remote !== undefined) queryParams.remote = params.remote
-      
-      // Add location filter
-      if (params.location) queryParams.location = params.location
-      
-      console.log('📤 Query params:', queryParams)
-      const response = await api.get('/jobs/indeed', { params: queryParams })
-      console.log('✅ Indeed response received:', response)
-      return normalizeJobResponse(response, params, 'indeed')
-    } catch (error) {
-      console.error('❌ Indeed jobs fetch error:', error.message, error.response?.data)
-      throw error
-    }
+    return jobsAPI.getJobs('indeed', params)
   },
-
-  // Scrape Lintberg jobs from backend
+  
+  /**
+   * Fetch Lintberg jobs
+   * Routes through the unified getJobs API with 'lintberg' source
+   */
   getLintbergJobs: async (params = {}) => {
+    return jobsAPI.getJobs('lintberg', params)
+  },
+}
+
+/* =========================================================
+   DASHBOARD API
+========================================================= */
+
+export const dashboardAPI = {
+  /**
+   * Fetch dashboard statistics
+   * Returns aggregated stats including:
+   * - Average Match Score (computed from results)
+   * - Total Matched Jobs Count
+   * - CV Analyzed Count
+   * - Active Scrapes Count
+   * 
+   * @returns {Promise} Response with dashboard statistics
+   */
+  getDashboardStats: async () => {
     try {
-      console.log('📡 Fetching Lintberg jobs from:', API_BASE_URL + '/jobs/lintberg')
-      // Map filter names to backend API parameter names
-      const queryParams = {
-        page: params.page || 1,
-        page_size: params.perPage || 6,
-      }
-      
-      // Add search filter
-      if (params.search) queryParams.search = params.search
-      
-      // Map type to job_type
-      if (params.type) queryParams.job_type = params.type.toLowerCase()
-      
-      // Add remote filter
-      if (params.remote !== '' && params.remote !== undefined) queryParams.remote = params.remote
-      
-      // Add location filter
-      if (params.location) queryParams.location = params.location
-      
-      const response = await api.get('/jobs/lintberg', { params: queryParams })
-      console.log('✅ Lintberg response received:', response)
-      return normalizeJobResponse(response, params, 'lintberg')
+      console.log('📡 Fetching dashboard statistics from /api/dashboard_stats')
+      const response = await api.get('/api/dashboard_stats')
+      console.log('✅ Dashboard stats received:', response.data)
+      return response.data
     } catch (error) {
-      console.error('❌ Lintberg jobs fetch error:', error.message, error.response?.data)
+      console.error('❌ Error fetching dashboard stats:', error.message, error.response?.data)
       throw error
     }
   },

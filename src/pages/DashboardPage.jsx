@@ -10,24 +10,12 @@ import {
     ArrowUpRight,
     Linkedin,
     Globe,
+    AlertCircle,
 } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
-
-const stats = [
-    { label: 'Total Jobs', value: 62, icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/15', change: '+12%' },
-    { label: 'CVs Analyzed', value: 8, icon: FileText, color: 'text-emerald-400', bg: 'bg-emerald-500/15', change: '+3' },
-    { label: 'Active Scrapes', value: 3, icon: Activity, color: 'text-amber-400', bg: 'bg-amber-500/15', change: 'Live' },
-    { label: 'Match Rate', value: 78, icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-500/15', change: '+5%', suffix: '%' },
-]
-
-const recentActivity = [
-    { text: 'LinkedIn scrape completed — 24 jobs found', time: '2 min ago', color: 'bg-blue-400' },
-    { text: 'CV uploaded: john_doe_resume.pdf', time: '15 min ago', color: 'bg-emerald-400' },
-    { text: 'Indeed scrape completed — 20 jobs found', time: '1 hour ago', color: 'bg-purple-400' },
-    { text: 'Lintberg scrape completed — 18 jobs found', time: '2 hours ago', color: 'bg-teal-400' },
-    { text: 'CV analyzed: match score 85%', time: '3 hours ago', color: 'bg-amber-400' },
-]
+import { dashboardAPI } from '../services/api'
 
 function AnimatedCounter({ end, suffix = '', duration = 1500 }) {
     const [count, setCount] = useState(0)
@@ -50,8 +38,92 @@ function AnimatedCounter({ end, suffix = '', duration = 1500 }) {
     return <>{count}{suffix}</>
 }
 
+// Monthly scraping activity data
+const monthlyScrapingData = [
+    { month: 'Jan', linkedin: 24, indeed: 20, lintberg: 18 },
+    { month: 'Feb', linkedin: 32, indeed: 28, lintberg: 22 },
+    { month: 'Mar', linkedin: 38, indeed: 35, lintberg: 28 },
+    { month: 'Apr', linkedin: 45, indeed: 42, lintberg: 35 },
+    { month: 'May', linkedin: 52, indeed: 48, lintberg: 40 },
+    { month: 'Jun', linkedin: 58, indeed: 55, lintberg: 45 },
+    { month: 'Jul', linkedin: 62, indeed: 60, lintberg: 50 },
+    { month: 'Aug', linkedin: 68, indeed: 65, lintberg: 55 },
+    { month: 'Sep', linkedin: 72, indeed: 70, lintberg: 60 },
+    { month: 'Oct', linkedin: 78, indeed: 75, lintberg: 65 },
+    { month: 'Nov', linkedin: 85, indeed: 82, lintberg: 72 },
+    { month: 'Dec', linkedin: 92, indeed: 88, lintberg: 80 },
+]
+
 export default function DashboardPage() {
     const navigate = useNavigate()
+    const [stats, setStats] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    useEffect(() => {
+        const fetchDashboardStats = async () => {
+            try {
+                setLoading(true)
+                setError(null)
+                const data = await dashboardAPI.getDashboardStats()
+                
+                console.log('📊 Dashboard stats data:', data)
+
+                // Map API response to stats structure
+                const mappedStats = [
+                    {
+                        label: 'Total Matched Jobs',
+                        value: data.stats.total_matched_jobs || 0,
+                        icon: Briefcase,
+                        color: 'text-blue-400',
+                        bg: 'bg-blue-500/15',
+                      
+                    },
+                    {
+                        label: 'CVs Analyzed',
+                        value: data.stats.cv_analyzed || 0,
+                        icon: FileText,
+                        color: 'text-emerald-400',
+                        bg: 'bg-emerald-500/15',
+                      
+                    },
+                    {
+                        label: 'Active Scrapes',
+                        value: 3,
+                        icon: Activity,
+                        color: 'text-amber-400',
+                        bg: 'bg-amber-500/15',
+                       
+                    },
+                    {
+                        label: 'Average Match Score',
+                        value: data.stats.average_match_score || 0,
+                        icon: TrendingUp,
+                        color: 'text-purple-400',
+                        bg: 'bg-purple-500/15',
+                       
+                    },
+                ]
+
+                setStats(mappedStats)
+            } catch (err) {
+                console.error('❌ Error fetching dashboard stats:', err)
+                setError('Failed to load dashboard statistics. Please try again later.')
+                
+                // Set default stats in case of error
+                setStats([
+                    { label: 'Total Matched Jobs', value: 0, icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/15' },
+                    { label: 'CVs Analyzed', value: 0, icon: FileText, color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
+                    { label: 'Active Scrapes', value: 0, icon: Activity, color: 'text-amber-400', bg: 'bg-amber-500/15' },
+                    { label: 'Average Match Score', value: 0, icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-500/15' },
+                ])
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchDashboardStats()
+    }, [])
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -71,6 +143,14 @@ export default function DashboardPage() {
                 </div>
             </div>
 
+            {/* Error State */}
+            {error && (
+                <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300">
+                    <AlertCircle className="h-5 w-5 shrink-0" />
+                    <p className="text-sm">{error}</p>
+                </div>
+            )}
+
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 {stats.map((stat, i) => (
@@ -79,7 +159,11 @@ export default function DashboardPage() {
                             <div>
                                 <p className="text-sm text-surface-500 mb-1">{stat.label}</p>
                                 <p className="text-3xl font-bold text-surface-100">
-                                    <AnimatedCounter end={stat.value} suffix={stat.suffix} />
+                                    {loading ? (
+                                        <span className="animate-pulse">--</span>
+                                    ) : (
+                                        <AnimatedCounter end={stat.value} suffix={stat.suffix || ''} />
+                                    )}
                                 </p>
                             </div>
                             <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center`}>
@@ -97,22 +181,63 @@ export default function DashboardPage() {
 
             {/* Content Grid */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                {/* Recent Activity */}
+                {/* Monthly Scraping Activity Chart */}
                 <Card className="xl:col-span-2">
-                    <h2 className="text-lg font-semibold text-surface-100 mb-4">Recent Activity</h2>
-                    <div className="space-y-3">
-                        {recentActivity.map((item, i) => (
-                            <div
-                                key={i}
-                                className="flex items-start gap-3 p-3 rounded-xl hover:bg-surface-800/30 transition-colors"
-                            >
-                                <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${item.color}`} />
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-surface-300">{item.text}</p>
-                                    <p className="text-xs text-surface-600 mt-0.5">{item.time}</p>
-                                </div>
+                    <h2 className="text-lg font-semibold text-surface-100 mb-6">Monthly Scraping Activity</h2>
+                    <div className="w-full h-80 -mx-2">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={monthlyScrapingData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                                <XAxis 
+                                    dataKey="month" 
+                                    stroke="#9CA3AF"
+                                    style={{ fontSize: '12px' }}
+                                />
+                                <YAxis 
+                                    stroke="#9CA3AF"
+                                    style={{ fontSize: '12px' }}
+                                />
+                                <Tooltip 
+                                    contentStyle={{
+                                        backgroundColor: '#1F2937',
+                                        border: '1px solid #374151',
+                                        borderRadius: '8px',
+                                        color: '#E5E7EB',
+                                    }}
+                                    cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
+                                />
+                                <Legend 
+                                    wrapperStyle={{ paddingTop: '20px' }}
+                                    iconType="square"
+                                />
+                                <Bar dataKey="linkedin" fill="#3B82F6" radius={[8, 8, 0, 0]} />
+                                <Bar dataKey="indeed" fill="#A855F7" radius={[8, 8, 0, 0]} />
+                                <Bar dataKey="lintberg" fill="#10B981" radius={[8, 8, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="mt-6 grid grid-cols-3 gap-4 pt-4 border-t border-surface-700/30">
+                        <div className="text-center">
+                            <div className="flex items-center justify-center gap-2 mb-1">
+                                <div className="w-3 h-3 rounded-sm bg-blue-500"></div>
+                                <span className="text-xs text-surface-400">LinkedIn</span>
                             </div>
-                        ))}
+                            <p className="text-lg font-semibold text-blue-400">1,092</p>
+                        </div>
+                        <div className="text-center">
+                            <div className="flex items-center justify-center gap-2 mb-1">
+                                <div className="w-3 h-3 rounded-sm bg-purple-500"></div>
+                                <span className="text-xs text-surface-400">Indeed</span>
+                            </div>
+                            <p className="text-lg font-semibold text-purple-400">1,048</p>
+                        </div>
+                        <div className="text-center">
+                            <div className="flex items-center justify-center gap-2 mb-1">
+                                <div className="w-3 h-3 rounded-sm bg-emerald-500"></div>
+                                <span className="text-xs text-surface-400">Lintberg</span>
+                            </div>
+                            <p className="text-lg font-semibold text-emerald-400">900</p>
+                        </div>
                     </div>
                 </Card>
 
