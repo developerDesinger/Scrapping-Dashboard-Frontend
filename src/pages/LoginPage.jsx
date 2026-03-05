@@ -193,28 +193,6 @@ export default function LoginPage() {
                                 Sign In <ArrowRight className="h-4 w-4" />
                             </Button>
                         </form>
-
-                        {/* Demo credentials */}
-                        <div className="mt-6 pt-5 border-t border-surface-800">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Shield className="h-3.5 w-3.5 text-surface-600" />
-                                <p className="text-[11px] text-surface-600 uppercase tracking-wider font-medium">Demo Access</p>
-                            </div>
-                            <div className="p-3 rounded-lg bg-surface-800/40 space-y-1.5">
-                                <p className="text-xs text-surface-400">
-                                    <span className="text-surface-600 w-12 inline-block">Email</span>
-                                    <code className="text-brand-400 bg-brand-500/10 px-1.5 py-0.5 rounded text-[11px]">
-                                        admin@scraper.com
-                                    </code>
-                                </p>
-                                <p className="text-xs text-surface-400">
-                                    <span className="text-surface-600 w-12 inline-block">Pass</span>
-                                    <code className="text-brand-400 bg-brand-500/10 px-1.5 py-0.5 rounded text-[11px]">
-                                        admin123
-                                    </code>
-                                </p>
-                            </div>
-                        </div>
                     </div>
 
                     {/* Footer */}
