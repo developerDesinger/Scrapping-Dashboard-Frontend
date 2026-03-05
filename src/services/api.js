@@ -48,7 +48,7 @@ export const authAPI = {
   login: async (email, password) => {
     try {
       // ✅ Send JSON body
-      const response = await api.post('/login', {
+      const response = await api.post('/api/login', {
         email: email,
         password: password,
       })
@@ -126,12 +126,6 @@ export const cvAPI = {
       throw error
     }
   },
-
-  
-   
-
-
-
 
 
 }
@@ -217,8 +211,8 @@ function extractSalary(title) {
 }
 
 // Normalize unified API response (/api/get_results)
-// Processes results array and filters by source
-function normalizeJobResponse(response, filterBySource = null) {
+// Backend already filters by source, so just transform results
+function normalizeJobResponse(response) {
   console.log('🔍 Raw backend response:', response?.data)
   
   if (!response?.data) {
@@ -228,14 +222,14 @@ function normalizeJobResponse(response, filterBySource = null) {
         jobs: [],
         total: 0,
         page: 1,
-        perPage: 6,
+        perPage: 10,
         totalPages: 0,
       }
     }
   }
   
-  // Extract results array from unified API response
-  let results = response.data.results || []
+  // Extract results array from unified API response - backend already filters by source
+  let results = response.data.results || response.data.data || []
   
   if (!Array.isArray(results)) {
     console.warn('⚠️ Results is not an array:', results)
@@ -244,22 +238,8 @@ function normalizeJobResponse(response, filterBySource = null) {
   
   console.log(`✅ Fetched ${results.length} results from unified endpoint`)
   
-  // Filter results by source if specified
-  let filteredResults = results
-  
-  if (filterBySource) {
-    const beforeFilter = results.length
-    filteredResults = results.filter(result => {
-      const job = result.job
-      const jobSource = job?.source || ''
-      const sourceMatch = jobSource.toLowerCase() === filterBySource.toLowerCase()
-      return sourceMatch && job !== null && job !== undefined
-    })
-    console.log(`✅ Filtered results by source '${filterBySource}': ${beforeFilter} → ${filteredResults.length}`)
-  } else {
-    // Filter out invalid results if no source filter
-    filteredResults = results.filter(result => result.job !== null && result.job !== undefined)
-  }
+  // Filter out invalid results
+  let filteredResults = results.filter(result => result.job !== null && result.job !== undefined)
   
   // Transform results to UI format
   const transformedJobs = filteredResults
@@ -268,16 +248,19 @@ function normalizeJobResponse(response, filterBySource = null) {
   
   console.log(`✅ Transformed ${transformedJobs.length} jobs for display`)
   
-  // Calculate pagination (simple pagination based on array length)
-  const perPage = 6
-  const total = transformedJobs.length
+  // Get pagination info from API
+  const total = response.data.total || response.data.total_records || transformedJobs.length
+  const page = response.data.page || 1
+  const perPage = response.data.page_size || 10
   const totalPages = Math.ceil(total / perPage)
+  
+  console.log(`📊 Total: ${total}, Page: ${page}, PerPage: ${perPage}, TotalPages: ${totalPages}`)
   
   return {
     data: {
       jobs: transformedJobs,
       total,
-      page: 1,
+      page,
       perPage,
       totalPages,
     }
@@ -286,41 +269,30 @@ function normalizeJobResponse(response, filterBySource = null) {
 
 export const jobsAPI = {
   /**
-   * Fetch ALL jobs from unified endpoint: /api/get_results
-   * Returns jobs with source field that can be filtered by each page
-   * 
-   * @returns {Promise} Response with all jobs from all sources
-   */
-  getAllResults: async () => {
-    try {
-      console.log('📡 Fetching all results from unified endpoint: /api/get_results')
-      const response = await api.get('/api/get_results')
-      console.log('✅ Results received:', response)
-      return response
-    } catch (error) {
-      console.error('❌ Error fetching results:', error.message, error.response?.data)
-      throw error
-    }
-  },
-
-  /**
-   * Fetch jobs filtered by source
-   * Calls unified endpoint and filters results by source
+   * Fetch jobs with pagination and source filter
+   * Calls /api/get_results with source, page, and page_size query parameters
    * 
    * @param {string} source - The job source to filter by (linkedin, indeed, lintberg)
-   * @param {object} params - Query parameters (for future use - pagination, etc.)
-   * @returns {Promise} Normalized job response filtered by source
+   * @param {number} page - Page number (1-based)
+   * @param {number} pageSize - Items per page
+   * @returns {Promise} Response with jobs and pagination info
    */
-  getJobs: async (source = 'linkedin', params = {}) => {
+  getJobs: async (source = 'linkedin', page = 1, pageSize = 10) => {
     try {
-      console.log(`📡 Fetching jobs for source: ${source}`)
+      console.log(`📡 Fetching jobs for source: ${source}, page: ${page}, pageSize: ${pageSize}`)
       
-      // Fetch from unified endpoint
-      const response = await api.get('/api/get_results')
+      // Fetch from unified endpoint with page, page_size, and source as query parameters (backend expects this order)
+      const response = await api.get('/api/get_results', {
+        params: {
+          page,
+          page_size: pageSize,
+          source,
+        }
+      })
       console.log(`✅ Response received for ${source}:`, response)
       
-      // Normalize and filter by source
-      return normalizeJobResponse(response, source)
+      // Normalize response (backend already filters by source)
+      return normalizeJobResponse(response)
     } catch (error) {
       console.error(`❌ Jobs fetch error for ${source}:`, error.message, error.response?.data)
       throw error
@@ -328,27 +300,24 @@ export const jobsAPI = {
   },
   
   /**
-   * Fetch LinkedIn jobs
-   * Routes through the unified getJobs API with 'linkedin' source
+   * Fetch LinkedIn jobs with pagination
    */
-  getLinkedInJobs: async (params = {}) => {
-    return jobsAPI.getJobs('linkedin', params)
+  getLinkedInJobs: async (page = 1, pageSize = 10) => {
+    return jobsAPI.getJobs('linkedin', page, pageSize)
   },
   
   /**
-   * Fetch Indeed jobs
-   * Routes through the unified getJobs API with 'indeed' source
+   * Fetch Indeed jobs with pagination
    */
-  getIndeedJobs: async (params = {}) => {
-    return jobsAPI.getJobs('indeed', params)
+  getIndeedJobs: async (page = 1, pageSize = 10) => {
+    return jobsAPI.getJobs('indeed', page, pageSize)
   },
   
   /**
-   * Fetch Lintberg jobs
-   * Routes through the unified getJobs API with 'lintberg' source
+   * Fetch Lintberg jobs with pagination
    */
-  getLintbergJobs: async (params = {}) => {
-    return jobsAPI.getJobs('lintberg', params)
+  getLintbergJobs: async (page = 1, pageSize = 10) => {
+    return jobsAPI.getJobs('lintberg', page, pageSize)
   },
 }
 
@@ -378,8 +347,32 @@ export const dashboardAPI = {
       throw error
     }
   },
+  
+
+ 
+
+}
+export const DashboardChartApi = {
+  /**
+   * Fetch dashboard chart data
+   * Returns graph data by month and source breakdown
+   * 
+   * @returns {Promise} Response with graph_data and source_data
+   */
+  getDashboardChart: async () => {
+    try {
+      console.log('📡 Fetching dashboard chart data from /api/dashboard_graph')
+      const response = await api.get('/api/dashboard_graph')
+      console.log('✅ Dashboard chart data received:', response.data)
+      return response.data
+    } catch (error) {
+      console.error('❌ Error fetching dashboard chart data:', error.message, error.response?.data)
+      throw error
+    }
+  },
 }
 
+
+
+
 export default api
-
-

@@ -168,16 +168,8 @@ export default function JobCard({ job }) {
                 )}
             </div>
 
-            {/* Tags */}
-            {job.tags && job.tags.length > 0 && (
-                <div className="px-6 pb-4 flex flex-wrap gap-2">
-                    {job.tags.map((tag, idx) => (
-                        <span key={idx} className="text-xs px-3 py-1.5 rounded-full bg-surface-900/50 text-surface-300 border border-surface-700/30">
-                            {tag}
-                        </span>
-                    ))}
-                </div>
-            )}
+            
+           
 
             {/* Footer: Full Width Button + Platform */}
             <div className="mt-auto border-t border-surface-700/30 flex items-center gap-3 p-4 bg-surface-950/40">

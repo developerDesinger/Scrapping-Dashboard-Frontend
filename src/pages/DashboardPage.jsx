@@ -15,7 +15,8 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
-import { dashboardAPI } from '../services/api'
+import { dashboardAPI, DashboardChartApi } from '../services/api'
+
 
 function AnimatedCounter({ end, suffix = '', duration = 1500 }) {
     const [count, setCount] = useState(0)
@@ -38,27 +39,13 @@ function AnimatedCounter({ end, suffix = '', duration = 1500 }) {
     return <>{count}{suffix}</>
 }
 
-// Monthly scraping activity data
-const monthlyScrapingData = [
-    { month: 'Jan', linkedin: 24, indeed: 20, lintberg: 18 },
-    { month: 'Feb', linkedin: 32, indeed: 28, lintberg: 22 },
-    { month: 'Mar', linkedin: 38, indeed: 35, lintberg: 28 },
-    { month: 'Apr', linkedin: 45, indeed: 42, lintberg: 35 },
-    { month: 'May', linkedin: 52, indeed: 48, lintberg: 40 },
-    { month: 'Jun', linkedin: 58, indeed: 55, lintberg: 45 },
-    { month: 'Jul', linkedin: 62, indeed: 60, lintberg: 50 },
-    { month: 'Aug', linkedin: 68, indeed: 65, lintberg: 55 },
-    { month: 'Sep', linkedin: 72, indeed: 70, lintberg: 60 },
-    { month: 'Oct', linkedin: 78, indeed: 75, lintberg: 65 },
-    { month: 'Nov', linkedin: 85, indeed: 82, lintberg: 72 },
-    { month: 'Dec', linkedin: 92, indeed: 88, lintberg: 80 },
-]
-
 export default function DashboardPage() {
     const navigate = useNavigate()
     const [stats, setStats] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [chartData, setChartData] = useState([])
+    const [sourceData, setSourceData] = useState({ linkedin: 0, indeed: 0, lintberg: 0 })
 
     useEffect(() => {
         const fetchDashboardStats = async () => {
@@ -125,6 +112,52 @@ export default function DashboardPage() {
         fetchDashboardStats()
     }, [])
 
+    // Fetch chart data
+    useEffect(() => {
+        const fetchChartData = async () => {
+            try {
+                console.log('📈 Fetching chart data...')
+                const chartResponse = await DashboardChartApi.getDashboardChart()
+                console.log('✅ Chart data received:', chartResponse)
+
+                // Process graph_data - already contains source breakdown per month
+                if (chartResponse.graph_data && Array.isArray(chartResponse.graph_data)) {
+                    const graphData = chartResponse.graph_data
+                    
+                    // Data is already in correct format with month, indeed, linkedin, lintberg
+                    console.log('✅ Chart data ready for display:', graphData)
+                    setChartData(graphData)
+
+                    // Calculate totals from source_data
+                    const sourceDataArray = chartResponse.source_data || []
+                    let linkedinTotal = 0
+                    let indeedTotal = 0
+                    let lintbergTotal = 0
+
+                    sourceDataArray.forEach((item) => {
+                        if (item.source === 'linkedin') linkedinTotal = item.total_jobs
+                        if (item.source === 'indeed') indeedTotal = item.total_jobs
+                        if (item.source === 'lintberg') lintbergTotal = item.total_jobs
+                    })
+
+                    console.log('📊 Source totals - LinkedIn:', linkedinTotal, 'Indeed:', indeedTotal, 'Lintberg:', lintbergTotal)
+
+                    // Set source data for summary
+                    setSourceData({
+                        linkedin: linkedinTotal,
+                        indeed: indeedTotal,
+                        lintberg: lintbergTotal,
+                    })
+                }
+            } catch (err) {
+                console.error('❌ Error fetching chart data:', err)
+                // Keep using default/empty state if API fails
+            }
+        }
+
+        fetchChartData()
+    }, [])
+
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Header */}
@@ -171,9 +204,9 @@ export default function DashboardPage() {
                             </div>
                         </div>
                         <div className="mt-3 flex items-center gap-1">
-                            <ArrowUpRight className="h-3.5 w-3.5 text-emerald-400" />
+                          
                             <span className="text-xs text-emerald-400 font-medium">{stat.change}</span>
-                            <span className="text-xs text-surface-600 ml-1">from last week</span>
+                            
                         </div>
                     </Card>
                 ))}
@@ -186,7 +219,7 @@ export default function DashboardPage() {
                     <h2 className="text-lg font-semibold text-surface-100 mb-6">Monthly Scraping Activity</h2>
                     <div className="w-full h-80 -mx-2">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={monthlyScrapingData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                            <BarChart data={chartData.length > 0 ? chartData : []} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                                 <XAxis 
                                     dataKey="month" 
@@ -222,21 +255,21 @@ export default function DashboardPage() {
                                 <div className="w-3 h-3 rounded-sm bg-blue-500"></div>
                                 <span className="text-xs text-surface-400">LinkedIn</span>
                             </div>
-                            <p className="text-lg font-semibold text-blue-400">1,092</p>
+                            <p className="text-lg font-semibold text-blue-400">{sourceData.linkedin}</p>
                         </div>
                         <div className="text-center">
                             <div className="flex items-center justify-center gap-2 mb-1">
                                 <div className="w-3 h-3 rounded-sm bg-purple-500"></div>
                                 <span className="text-xs text-surface-400">Indeed</span>
                             </div>
-                            <p className="text-lg font-semibold text-purple-400">1,048</p>
+                            <p className="text-lg font-semibold text-purple-400">{sourceData.indeed}</p>
                         </div>
                         <div className="text-center">
                             <div className="flex items-center justify-center gap-2 mb-1">
                                 <div className="w-3 h-3 rounded-sm bg-emerald-500"></div>
                                 <span className="text-xs text-surface-400">Lintberg</span>
                             </div>
-                            <p className="text-lg font-semibold text-emerald-400">900</p>
+                            <p className="text-lg font-semibold text-emerald-400">{sourceData.lintberg}</p>
                         </div>
                     </div>
                 </Card>

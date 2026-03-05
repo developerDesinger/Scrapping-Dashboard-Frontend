@@ -34,37 +34,34 @@ export default function useJobs(platform) {
         try {
             const apiFn = apiMap[platform]
             if (!apiFn) throw new Error(`Unknown platform: ${platform}`)
-            console.log('🚀 Fetching jobs for platform:', platform, 'with params:', { ...filters, page, perPage: 6 })
-            const response = await apiFn({ ...filters, page, perPage: 6 })
+            
+            const pageSize = 10 // Page size for API
+            console.log('🚀 Fetching jobs for platform:', platform, 'with page:', page)
+            const response = await apiFn(page, pageSize)
             console.log('📦 Response received:', response)
             
             let fetchedJobs = []
 
             if (response?.data) {
-                if (Array.isArray(response.data)) {
+                if (Array.isArray(response.data.jobs)) {
+                    fetchedJobs = response.data.jobs
+                    console.log('✅ Jobs extracted:', fetchedJobs.length)
+                } else if (Array.isArray(response.data)) {
                     fetchedJobs = response.data
                     console.log('✅ Jobs extracted (array):', fetchedJobs.length)
-                } else if (Array.isArray(response.data.jobs)) {
-                    fetchedJobs = response.data.jobs
-                    console.log('✅ Jobs extracted (response.data.jobs):', fetchedJobs.length)
-                } else if (Array.isArray(response.data.data)) {
-                    fetchedJobs = response.data.data
-                    console.log('✅ Jobs extracted (response.data.data):', fetchedJobs.length)
                 }
             }
 
             console.log('💾 Setting state with jobs:', fetchedJobs.length)
             setJobs(fetchedJobs)
-            const totalPages = response?.data?.totalPages || Math.ceil((response?.data?.total || fetchedJobs.length) / 6)
-            const total = response?.data?.total || fetchedJobs.length
-            setTotalPages(totalPages)
-            setTotal(total)
+            setTotalPages(response?.data?.totalPages || 1)
+            setTotal(response?.data?.total || fetchedJobs.length)
 
             // Show success toast only once
             if (!toastShownRef.current) {
                 const label = platformLabels[platform] || platform
                 addToast({
-                    message: `✓ ${label} scrape complete — ${total} jobs found`,
+                    message: `✓ ${label} scrape complete — ${response?.data?.total || fetchedJobs.length} jobs found`,
                     type: 'success',
                     duration: 4000,
                 })
@@ -86,7 +83,7 @@ export default function useJobs(platform) {
         } finally {
             setLoading(false)
         }
-    }, [platform, page, filters, addToast])
+    }, [platform, page, addToast])
 
     useEffect(() => {
         fetchJobs()
