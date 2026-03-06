@@ -246,6 +246,7 @@ export default function DashboardPage() {
                                 <Bar dataKey="linkedin" fill="#3B82F6" radius={[8, 8, 0, 0]} />
                                 <Bar dataKey="indeed" fill="#A855F7" radius={[8, 8, 0, 0]} />
                                 <Bar dataKey="lintberg" fill="#10B981" radius={[8, 8, 0, 0]} />
+                                
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -300,7 +301,7 @@ export default function DashboardPage() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-surface-200 group-hover:text-surface-100">LinkedIn Jobs</p>
-                                <p className="text-xs text-surface-500">24 new matches</p>
+                                <p className="text-xs text-surface-500">{sourceData.linkedin} jobs</p>
                             </div>
                         </button>
 
@@ -313,7 +314,7 @@ export default function DashboardPage() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-surface-200 group-hover:text-surface-100">Indeed Jobs</p>
-                                <p className="text-xs text-surface-500">20 new matches</p>
+                                <p className="text-xs text-surface-500">{sourceData.indeed} jobs</p>
                             </div>
                         </button>
 
@@ -326,7 +327,7 @@ export default function DashboardPage() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-surface-200 group-hover:text-surface-100">Lintberg Jobs</p>
-                                <p className="text-xs text-surface-500">18 new matches</p>
+                                <p className="text-xs text-surface-500">{sourceData.lintberg} jobs</p>
                             </div>
                         </button>
                     </div>
