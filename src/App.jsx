@@ -8,9 +8,7 @@ import DashboardLayout from './components/layout/DashboardLayout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import CVUploadPage from './pages/CVUploadPage'
-import LinkedInJobsPage from './pages/LinkedInJobsPage'
-import IndeedJobsPage from './pages/IndeedJobsPage'
-import LintbergJobsPage from './pages/LintbergJobsPage'
+import AllJobsPage from './pages/AllJobsPage'
 
 export default function App() {
   return (
@@ -46,9 +44,7 @@ export default function App() {
               >
                 <Route index element={<DashboardPage />} />
                 <Route path="cv" element={<CVUploadPage />} />
-                <Route path="linkedin" element={<LinkedInJobsPage />} />
-                <Route path="indeed" element={<IndeedJobsPage />} />
-                <Route path="lintberg" element={<LintbergJobsPage />} />
+                <Route path="jobs" element={<AllJobsPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
