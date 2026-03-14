@@ -7,7 +7,6 @@ import {
     TrendingUp,
     Upload,
     Search,
-    ArrowUpRight,
     Linkedin,
     Globe,
     AlertCircle,
@@ -45,7 +44,7 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [chartData, setChartData] = useState([])
-    const [sourceData, setSourceData] = useState({ linkedin: 0, indeed: 0, lintberg: 0 })
+    const [sourceData, setSourceData] = useState({ linkedin: 0, indeed: 0, lintberg: 0, jobleads: 0 })
 
     useEffect(() => {
         const fetchDashboardStats = async () => {
@@ -53,7 +52,7 @@ export default function DashboardPage() {
                 setLoading(true)
                 setError(null)
                 const data = await dashboardAPI.getDashboardStats()
-                
+
                 console.log('📊 Dashboard stats data:', data)
 
                 // Map API response to stats structure
@@ -64,7 +63,7 @@ export default function DashboardPage() {
                         icon: Briefcase,
                         color: 'text-blue-400',
                         bg: 'bg-blue-500/15',
-                      
+
                     },
                     {
                         label: 'CVs Analyzed',
@@ -72,7 +71,7 @@ export default function DashboardPage() {
                         icon: FileText,
                         color: 'text-emerald-400',
                         bg: 'bg-emerald-500/15',
-                      
+
                     },
                     {
                         label: 'Active Scrapes',
@@ -80,7 +79,7 @@ export default function DashboardPage() {
                         icon: Activity,
                         color: 'text-amber-400',
                         bg: 'bg-amber-500/15',
-                       
+
                     },
                     {
                         label: 'Average Match Score',
@@ -88,7 +87,7 @@ export default function DashboardPage() {
                         icon: TrendingUp,
                         color: 'text-purple-400',
                         bg: 'bg-purple-500/15',
-                       
+
                     },
                 ]
 
@@ -96,7 +95,7 @@ export default function DashboardPage() {
             } catch (err) {
                 console.error('❌ Error fetching dashboard stats:', err)
                 setError('Failed to load dashboard statistics. Please try again later.')
-                
+
                 // Set default stats in case of error
                 setStats([
                     { label: 'Total Matched Jobs', value: 0, icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/15' },
@@ -123,7 +122,7 @@ export default function DashboardPage() {
                 // Process graph_data - already contains source breakdown per month
                 if (chartResponse.graph_data && Array.isArray(chartResponse.graph_data)) {
                     const graphData = chartResponse.graph_data
-                    
+
                     // Data is already in correct format with month, indeed, linkedin, lintberg
                     console.log('✅ Chart data ready for display:', graphData)
                     setChartData(graphData)
@@ -133,20 +132,23 @@ export default function DashboardPage() {
                     let linkedinTotal = 0
                     let indeedTotal = 0
                     let lintbergTotal = 0
+                    let jobleadsTotal = 0
 
                     sourceDataArray.forEach((item) => {
                         if (item.source === 'linkedin') linkedinTotal = item.total_jobs
                         if (item.source === 'indeed') indeedTotal = item.total_jobs
                         if (item.source === 'lintberg') lintbergTotal = item.total_jobs
+                        if (item.source === 'jobleads') jobleadsTotal = item.total_jobs
                     })
 
-                    console.log('📊 Source totals - LinkedIn:', linkedinTotal, 'Indeed:', indeedTotal, 'Lintberg:', lintbergTotal)
+                    console.log('📊 Source totals - LinkedIn:', linkedinTotal, 'Indeed:', indeedTotal, 'Lintberg:', lintbergTotal, 'Jobleads:', jobleadsTotal)
 
                     // Set source data for summary
                     setSourceData({
                         linkedin: linkedinTotal,
                         indeed: indeedTotal,
                         lintberg: lintbergTotal,
+                        jobleads: jobleadsTotal,
                     })
                 }
             } catch (err) {
@@ -204,9 +206,9 @@ export default function DashboardPage() {
                             </div>
                         </div>
                         <div className="mt-3 flex items-center gap-1">
-                          
+
                             <span className="text-xs text-emerald-400 font-medium">{stat.change}</span>
-                            
+
                         </div>
                     </Card>
                 ))}
@@ -221,16 +223,16 @@ export default function DashboardPage() {
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={chartData.length > 0 ? chartData : []} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                                <XAxis 
-                                    dataKey="month" 
+                                <XAxis
+                                    dataKey="month"
                                     stroke="#9CA3AF"
                                     style={{ fontSize: '12px' }}
                                 />
-                                <YAxis 
+                                <YAxis
                                     stroke="#9CA3AF"
                                     style={{ fontSize: '12px' }}
                                 />
-                                <Tooltip 
+                                <Tooltip
                                     contentStyle={{
                                         backgroundColor: '#1F2937',
                                         border: '1px solid #374151',
@@ -239,18 +241,19 @@ export default function DashboardPage() {
                                     }}
                                     cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
                                 />
-                                <Legend 
+                                <Legend
                                     wrapperStyle={{ paddingTop: '20px' }}
                                     iconType="square"
                                 />
                                 <Bar dataKey="linkedin" fill="#3B82F6" radius={[8, 8, 0, 0]} />
                                 <Bar dataKey="indeed" fill="#A855F7" radius={[8, 8, 0, 0]} />
                                 <Bar dataKey="lintberg" fill="#10B981" radius={[8, 8, 0, 0]} />
-                                
+                                <Bar dataKey="jobleads" fill="#F59E0B" radius={[8, 8, 0, 0]} />
+
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
-                    <div className="mt-6 grid grid-cols-3 gap-4 pt-4 border-t border-surface-700/30">
+                    <div className="mt-6 grid grid-cols-4 gap-4 pt-4 border-t border-surface-700/30">
                         <div className="text-center">
                             <div className="flex items-center justify-center gap-2 mb-1">
                                 <div className="w-3 h-3 rounded-sm bg-blue-500"></div>
@@ -271,6 +274,13 @@ export default function DashboardPage() {
                                 <span className="text-xs text-surface-400">Lintberg</span>
                             </div>
                             <p className="text-lg font-semibold text-emerald-400">{sourceData.lintberg}</p>
+                        </div>
+                        <div className="text-center">
+                            <div className="flex items-center justify-center gap-2 mb-1">
+                                <div className="w-3 h-3 rounded-sm bg-amber-500"></div>
+                                <span className="text-xs text-surface-400">Jobleads</span>
+                            </div>
+                            <p className="text-lg font-semibold text-amber-400">{sourceData.jobleads}</p>
                         </div>
                     </div>
                 </Card>
@@ -328,6 +338,18 @@ export default function DashboardPage() {
                             <div>
                                 <p className="text-sm font-medium text-surface-200 group-hover:text-surface-100">Lintberg Jobs</p>
                                 <p className="text-xs text-surface-500">{sourceData.lintberg} jobs</p>
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => navigate('/dashboard/jobleads')}
+                            className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-800/50 transition-colors text-left group"
+                        >
+                            <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+                                <Globe className="h-4 w-4 text-amber-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-surface-200 group-hover:text-surface-100">Jobleads Jobs</p>
+                                <p className="text-xs text-surface-500">{sourceData.jobleads} jobs</p>
                             </div>
                         </button>
                     </div>
