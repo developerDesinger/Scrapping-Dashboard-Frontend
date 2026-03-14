@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { FileText, CheckCircle2, Sparkles, Trash2 } from 'lucide-react'
 import CVDropzone from '../components/cv/CVDropzone'
-import CVAnalysisStatus from '../components/cv/CVAnalysisStatus'
 import CVList from '../components/cv/CVList'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -17,7 +16,7 @@ export default function CVUploadPage() {
     const [status, setStatus] = useState('idle')
     const [analysis, setAnalysis] = useState(null)
     const [candidateId, setCandidateId] = useState(null)
-    
+
     const [cvList, setCvList] = useState([])
     const [cvListLoading, setCvListLoading] = useState(false)
     const [cvListError, setCvListError] = useState(null)
@@ -37,11 +36,11 @@ export default function CVUploadPage() {
             console.log('Full API Response:', response)
             console.log('Response status:', response.status)
             console.log('Response data:', response.data)
-            
+
             // Handle the new response structure with cv_profiles
             const cvs = response.data?.cv_profiles || response.data?.data || response.data?.cvs || response.data || []
             console.log('Processed CVs:', cvs)
-            
+
             setCvList(Array.isArray(cvs) ? cvs : [])
         } catch (err) {
             console.error('Error fetching CVs:', err)
@@ -74,7 +73,7 @@ export default function CVUploadPage() {
             setAnalysis(result.data)
             setCandidateId(result.data?.candidate_id || result.data?.id)
             toast.success('CV uploaded successfully!')
-            
+
             await fetchUserCVs()
         } catch (err) {
             toast.error(err.response?.data?.message || 'Upload failed. Please try again.')
@@ -98,7 +97,7 @@ export default function CVUploadPage() {
             setProgress(0)
             setStatus('idle')
             toast.success('CV deleted successfully!')
-            
+
             await fetchUserCVs()
         } catch (err) {
             toast.error(err.response?.data?.message || 'Delete failed. Please try again.')
@@ -247,9 +246,9 @@ export default function CVUploadPage() {
                 </div>
 
                 <div className="mt-10 pt-8 border-t border-surface-700">
-                    <CVList 
-                        cvs={cvList} 
-                        loading={cvListLoading} 
+                    <CVList
+                        cvs={cvList}
+                        loading={cvListLoading}
                         onCVDeleted={handleCVDeleted}
                     />
                 </div>

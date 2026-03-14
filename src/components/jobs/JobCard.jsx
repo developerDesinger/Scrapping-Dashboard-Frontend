@@ -9,14 +9,74 @@ import {
   FileText,
   ChevronDown,
   Trash2,
+  Linkedin,
+  Globe
 } from 'lucide-react'
 import Badge from '../ui/Badge'
 import { useState } from 'react'
 
-const platformColors = {
-  linkedin: 'text-blue-400',
-  indeed: 'text-purple-400',
-  lintberg: 'text-emerald-400',
+const getPlatformConfig = (platform) => {
+  const p = platform?.toLowerCase() || '';
+  switch (p) {
+    case 'linkedin':
+      return {
+        color: 'text-blue-400',
+        bg: 'bg-blue-500/15',
+        border: 'border-blue-500/30',
+        icon: <Linkedin className="w-4 h-4" />
+      };
+    case 'indeed':
+      return {
+        color: 'text-indigo-400',
+        bg: 'bg-indigo-500/15',
+        border: 'border-indigo-500/30',
+        icon: (
+          <div className="w-4 h-4 rounded-sm bg-indigo-500 flex items-center text-white justify-center font-bold text-[10px]">
+            in
+          </div>
+        )
+      };
+    case 'lintberg':
+      return {
+        color: 'text-emerald-400',
+        bg: 'bg-emerald-500/15',
+        border: 'border-emerald-500/30',
+        icon: (
+          <div className="w-4 h-4 rounded-sm bg-emerald-500 flex items-center text-white justify-center font-bold text-[10px]">
+            L
+          </div>
+        )
+      };
+    case 'upwork':
+      return {
+        color: 'text-green-400',
+        bg: 'bg-green-500/15',
+        border: 'border-green-500/30',
+        icon: (
+          <div className="w-4 h-4 rounded-sm bg-green-500 flex items-center text-white justify-center font-bold text-[10px]">
+            Up
+          </div>
+        )
+      };
+    case 'glassdoor':
+      return {
+        color: 'text-teal-400',
+        bg: 'bg-teal-500/15',
+        border: 'border-teal-500/30',
+        icon: (
+          <div className="w-4 h-4 rounded-sm bg-teal-500 flex items-center text-white justify-center font-bold text-[10px]">
+            G
+          </div>
+        )
+      };
+    default:
+      return {
+        color: 'text-surface-200',
+        bg: 'bg-surface-800',
+        border: 'border-surface-600',
+        icon: <Globe className="w-4 h-4 text-surface-400" />
+      };
+  }
 }
 
 const getMatchScoreBadgeColor = (score) => {
@@ -188,12 +248,15 @@ export default function JobCard({ job, onDelete }) {
       {/* Footer */}
       <div className="mt-auto border-t border-surface-700/30 flex items-center gap-3 p-4 bg-surface-950/40">
         {/* Platform badge */}
-        <span
-          className={`text-xs font-semibold flex items-center gap-1.5 ${platformColors[job.platform] || 'text-surface-400'}`}
-        >
-          <span className="text-lg leading-none">●</span>
-          <span className="uppercase tracking-wider">{job.platform}</span>
-        </span>
+        {(() => {
+          const config = getPlatformConfig(job.platform);
+          return (
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border shadow-sm ${config.bg} ${config.border} ${config.color}`}>
+              {config.icon}
+              <span className="text-xs font-bold uppercase tracking-wider">{job.platform || 'Unknown'}</span>
+            </div>
+          );
+        })()}
 
         {/* Delete button */}
         <button

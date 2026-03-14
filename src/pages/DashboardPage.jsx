@@ -303,7 +303,7 @@ export default function DashboardPage() {
                         </button>
 
                         <button
-                            onClick={() => navigate('/dashboard/linkedin')}
+
                             className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-800/50 transition-colors text-left group"
                         >
                             <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center shrink-0">
@@ -316,7 +316,7 @@ export default function DashboardPage() {
                         </button>
 
                         <button
-                            onClick={() => navigate('/dashboard/indeed')}
+
                             className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-800/50 transition-colors text-left group"
                         >
                             <div className="w-9 h-9 rounded-lg bg-purple-500/15 flex items-center justify-center shrink-0">
@@ -329,7 +329,7 @@ export default function DashboardPage() {
                         </button>
 
                         <button
-                            onClick={() => navigate('/dashboard/lintberg')}
+
                             className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-800/50 transition-colors text-left group"
                         >
                             <div className="w-9 h-9 rounded-lg bg-teal-500/15 flex items-center justify-center shrink-0">
@@ -341,7 +341,7 @@ export default function DashboardPage() {
                             </div>
                         </button>
                         <button
-                            onClick={() => navigate('/dashboard/jobleads')}
+
                             className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-800/50 transition-colors text-left group"
                         >
                             <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">

@@ -18,8 +18,6 @@ import Input from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import toast from 'react-hot-toast'
 
-
-
 const features = [
     { icon: FileSearch, title: 'AI CV Analysis', desc: 'Smart resume parsing & skill extraction' },
     { icon: Briefcase, title: 'Multi-Platform Scraping', desc: 'LinkedIn, Indeed & Lintberg in one place' },

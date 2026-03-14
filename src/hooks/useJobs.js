@@ -21,7 +21,7 @@ export default function useJobs() {
     toastShownRef.current = false
 
     try {
-      const response = await jobsAPI.getJobs(page, 10)
+      const response = await jobsAPI.getJobs(page, 9)
 
       let fetchedJobs = []
       if (response?.data) {

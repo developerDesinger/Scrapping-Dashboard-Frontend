@@ -184,7 +184,7 @@ function extractSalary(title) {
 function normalizeJobResponse(response) {
   if (!response?.data) {
     return {
-      data: { jobs: [], total: 0, page: 1, perPage: 10, totalPages: 0 },
+      data: { jobs: [], total: 0, page: 1, perPage: 9, totalPages: 0 },
     }
   }
 
@@ -201,7 +201,7 @@ function normalizeJobResponse(response) {
 
   const total = response.data.total || response.data.total_records || transformedJobs.length
   const page = response.data.page || 1
-  const perPage = response.data.page_size || 10
+  const perPage = response.data.page_size || 9
   const totalPages = Math.ceil(total / perPage)
 
   return {
@@ -218,7 +218,7 @@ export const jobsAPI = {
    * Fetch all jobs with pagination
    * GET /api/get_results?page=1&page_size=10
    */
-  getJobs: async (page = 1, pageSize = 10) => {
+  getJobs: async (page = 1, pageSize = 9) => {
     try {
       const response = await api.get('/api/get_results', {
         params: { page, page_size: pageSize },
